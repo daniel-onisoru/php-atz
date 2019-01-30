@@ -55,7 +55,8 @@ class PhpAtz
 
     public static function _shutdown()
     {
-
+        if ($this->sock)
+            $this->serial->close();
     }
 
     public function __get($v)

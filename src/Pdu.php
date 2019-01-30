@@ -72,7 +72,8 @@ class Pdu extends Base
                 break;
         }
 
-        var_dump($decoded);
+        //var_dump($decoded);
+        return $decoded;
     }
 
     private function _decode_deliver(&$octets, &$decoded)
@@ -182,21 +183,18 @@ class Pdu extends Base
     {
          //72/115/104
         // 01001000
-
         //1001000 1110011 1101000
-
         //11001000 00111001 00011010
-
         // 1001000
-
         //1 00111001 00011010
-
         //var_dump($octets);
+
         array_walk($octets, function (&$oct) {
             $oct = intval($oct, 16);
             $oct = str_pad(decbin($oct), 8, '0', STR_PAD_LEFT);
         });
-        var_dump($octets); //die();
+
+        //var_dump($octets); die();
         $octets = implode('', $octets);
         $length = floor(strlen($octets) / 7);
 
