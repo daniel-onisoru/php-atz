@@ -1,0 +1,24 @@
+{
+    "name": "daniel.o/php-atz",
+    "description": "PHP Library for interacting with AT compatible modems",
+    "keywords": ["php", "modem", "serial", "at", "at commands", "atz"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Daniel Onisoru",
+            "email": "daniel.onisoru@gmail.com"
+        }
+    ],
+    "type": "project",
+    "require": {
+		"php": ">=5.4"
+    },
+	"require-dev": {
+		"phpunit/phpunit": "5.2.*"
+    },
+	"autoload": {
+        "psr-4": {
+            "PhpAtz\\": "src/"
+        }
+    }
+}
