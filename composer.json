@@ -1,5 +1,5 @@
 {
-    "name": "daniel.o/php-atz",
+    "name": "daniel-onisoru/php-atz",
     "description": "PHP Library for interacting with AT compatible modems",
     "keywords": ["php", "modem", "serial", "at", "at commands", "atz"],
     "license": "MIT",
