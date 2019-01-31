@@ -1,3 +1,11 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Cache-Control" content="no-cache">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>PhpAtz Demo</title>
+</head>
+<body>
 <pre>
 <?php
 ini_set('display_errors', 'On');
@@ -96,3 +104,7 @@ catch (Exception $e)
         //$m->pdu->decode('07910467060095F0640B910467288402F200009110921244848018050003C20202D6A035E80C3A9FCF6734C85D07A9CD') //
         //$m->pdu->decode('07910467060095F0240B910467288402F20000911003401031802941771814969741EDB2BCEC0205DD6150585E06B5CBF2B22BE80E83C2F232A85D96975D20') //
     //);
+
+?>
+</body>
+</html>

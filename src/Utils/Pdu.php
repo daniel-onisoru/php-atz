@@ -133,6 +133,10 @@ class Pdu extends \PhpAtz\Utils\Base
                 $skip = $decoded['type']['udhi'] ? floor(((($decoded['udh']['length'] + 1) * 8) + 6) / 7) : 0;
                 $decoded['message'] = $this->_decode_7bit($ud, $skip);
                 break;
+            case DCS_UCS2:
+                //$skip = $decoded['type']['udhi'] ? floor(((($decoded['udh']['length'] + 1) * 8) + 6) / 7) : 0;
+                $decoded['message'] = $this->_decode_ucs2($ud);
+                break;
             default:
                 throw new \Exception('DCS: ' . $decoded['dcs'] . ' not impemented');
         }
@@ -186,6 +190,20 @@ class Pdu extends \PhpAtz\Utils\Base
         }
 
         return $message;
+    }
+
+    private function _decode_ucs2($octets)
+    {
+        //var_dump($octets);
+        $string = implode('', $octets);
+        //echo $string . "\n";
+        //$string = hex2bin($string);
+        $string = pack("H*", implode('', $octets));
+
+        //echo $string . "\n";
+        $string = mb_convert_encoding($string, 'UTF-8', 'UCS-2');
+        //echo $string;
+        return $string;
     }
 
     private function _oct2sept($octets)
