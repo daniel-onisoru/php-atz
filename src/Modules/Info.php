@@ -1,14 +1,14 @@
 <?php
-namespace PhpAtz;
+namespace PhpAtz\Modules;
 
-class Info extends Base
+class Info extends \PhpAtz\Utils\Base
 {
 
     function getSignal()
     {
-        $this->serial->write("AT+CSQ\n");
+        $this->conn->write("AT+CSQ\n");
 
-        $reply = $this->serial->read();
+        $reply = $this->conn->read();
 
         if (!$reply) return false;
 
@@ -25,9 +25,9 @@ class Info extends Base
 
     function getIMEI()
     {
-        $this->serial->write("AT+CGSN\n");
+        $this->conn->write("AT+CGSN\n");
 
-        $reply = $this->serial->read();
+        $reply = $this->conn->read();
 
         if (!$reply) return false;
 
@@ -44,13 +44,13 @@ class Info extends Base
 
     function getNetwork()
     {
-        $this->serial->write("AT+COPS=3,0\n");
+        $this->conn->write("AT+COPS=3,0\n");
 
-        if (!$this->serial->read_ok())
+        if (!$this->conn->read_ok())
             return false;
 
-        $this->serial->write("AT+COPS?\n");
-        $reply = $this->serial->read();
+        $this->conn->write("AT+COPS?\n");
+        $reply = $this->conn->read();
 
         if (!$reply) return false;
 
@@ -60,9 +60,9 @@ class Info extends Base
             {
                 if ($matches[1] && $matches[2]) return $matches[1] . ', ' . $matches[2];
 
-                if (file_exists('phpatz/mcc-mnc-table.json'))
+                if (file_exists(dirname(__FILE__) . '/../mcc-mnc-table.json'))
                 {
-                    $mcc = json_decode(file_get_contents('phpatz/mcc-mnc-table.json'), true);
+                    $mcc = json_decode(file_get_contents(dirname(__FILE__) . '/../mcc-mnc-table.json'), true);
 
                     foreach ($mcc as $code)
                     {

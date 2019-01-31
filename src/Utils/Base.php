@@ -1,5 +1,5 @@
 <?php
-namespace PhpAtz;
+namespace PhpAtz\Utils;
 
 
 class Base

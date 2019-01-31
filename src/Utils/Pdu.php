@@ -1,5 +1,5 @@
 <?php
-namespace PhpAtz;
+namespace PhpAtz\Utils;
 
 // dcs encoding
 define('DCS_GSM_7bit', 'GSM 7 bit');
@@ -12,7 +12,7 @@ define('CLASS_1', 'Class 1 (ME-specific)');
 define('CLASS_2', 'Class 2 (SIM/USIM-specific)');
 define('CLASS_3', 'Class 3 (TE-specific)');
 
-class Pdu extends Base
+class Pdu extends \PhpAtz\Utils\Base
 {
     /**
     * decode pdu string
@@ -27,9 +27,9 @@ class Pdu extends Base
         91 04 67 06 00 95 F0         Type-of-address of the SMSC; SMSC Number
         24                           PDU Type
         0B                           Address-Length. Length of the sender number
-        91 04 67 28 84 02 F2         Type-of-address of the Sender; Sender Number
+        91 04 76 82 48 02 F2         Type-of-address of the Sender; Sender Number
         00 00                        PID / DCS
-        91 10 92 02 94 23 80
+        91 10 92 02 94 23 80         Timestamp
         03                           Msg Length 3
         C8 39 1A                     Msg
 
@@ -38,7 +38,7 @@ class Pdu extends Base
         91 04 67 06 00 95 F0
         44
         0B
-        91 04 67 28 84 02 F2
+        91 04 76 82 48 02 F2
         00 00
         91 10 92 12 44 74 80
         A0                          Msg Length 140
@@ -46,11 +46,7 @@ class Pdu extends Base
         9064F45C3D17CF41F539685E9F83E6F539685E07CDEB73D0BC3E07D9C3A0791A44B6CF41E53A886C9F83EC61903E3D0785D361903E3D07A9F5E2B97A0ED2A7E7A0721D144E8741E17418640F83C2F61C1A7406BDC7E834687D06A5DDA0371A644E8340693728ED06A1416B50DA0D7AA341EB33687D06A141A035080402ADCFA035687D069D41
         */
 
-
-
         $decoded = [];
-
-        // splitting pdu in octets
         $octets = str_split($pdu, 2);
 
         // smsc part
@@ -72,7 +68,6 @@ class Pdu extends Base
                 break;
         }
 
-        //var_dump($decoded);
         return $decoded;
     }
 
@@ -89,18 +84,22 @@ class Pdu extends Base
             $decoded['sender']['number']  = $this->_number(array_splice($octets, 0, $numberLength), $numberLength + 1, $decoded['sender']['format']);
         }
 
+        // pid & dcs
         $decoded['pid'] = $this->_pid(array_splice($octets, 0, 1)[0]);
         list ($decoded['dcs'], $decoded['class']) = $this->_dcs(array_splice($octets, 0, 1)[0]);
 
+        // timestamp
         $decoded['scts'] = $this->_scts(array_splice($octets, 0, 7));
 
+        // ud length
         $decoded['length'] = intval(array_splice($octets, 0, 1)[0], 16);
 
+        $ud = $octets;
+        // udh
         if ($decoded['type']['udhi'])
         {
             $decoded['udh'] = [
-                'length'    => intval(array_splice($octets, 0, 1)[0], 16),
-                'multipart' => false
+                'length'    => intval(array_splice($octets, 0, 1)[0], 16)
             ];
 
             $k = 0;
@@ -127,17 +126,25 @@ class Pdu extends Base
 
         }
 
+        // message
         switch ($decoded['dcs'])
         {
             case DCS_GSM_7bit:
-                $decoded['message'] = $this->_decode_7bit($octets);
+                $skip = $decoded['type']['udhi'] ? floor(((($decoded['udh']['length'] + 1) * 8) + 6) / 7) : 0;
+                $decoded['message'] = $this->_decode_7bit($ud, $skip);
                 break;
             default:
                 throw new \Exception('DCS: ' . $decoded['dcs'] . ' not impemented');
         }
     }
 
-    function _decode_7bit($octets)
+    /**
+    * decodes octets intro 7bit alphabet
+    *
+    * @param mixed $octets - hex encoded octets
+    * @param mixed $skip - chars to skip from the begining (because of udh)
+    */
+    function _decode_7bit($octets, $skip = 0)
     {
         $dict = [
             0 => '@', 1 => '£', 2 => '$', 3 => '¥', 4 => 'è', 5 => 'é', 6 => 'ù', 7 => 'ì', 8 => 'ò', 9 => 'Ç',
@@ -165,6 +172,8 @@ class Pdu extends Base
         $message = '';
         for ($i=0; $i<count($septets); $i++)
         {
+            if ($i<$skip) continue;
+
             $chr = $septets[$i];
 
             if (!is_array($chr))
@@ -181,31 +190,25 @@ class Pdu extends Base
 
     private function _oct2sept($octets)
     {
-         //72/115/104
-        // 01001000
-        //1001000 1110011 1101000
-        //11001000 00111001 00011010
-        // 1001000
-        //1 00111001 00011010
-        //var_dump($octets);
-
         array_walk($octets, function (&$oct) {
             $oct = intval($oct, 16);
             $oct = str_pad(decbin($oct), 8, '0', STR_PAD_LEFT);
         });
 
-        //var_dump($octets); die();
+        $octets = array_reverse($octets);
         $octets = implode('', $octets);
-        $length = floor(strlen($octets) / 7);
 
-        $length = 8;
-
-        $septets = [];
-        for ($i=0; $i<$length; $i++)
+        $octLength = strlen($octets);
+        $septets = []; $i = 0;
+        while (7 * ($i+1) < $octLength)
         {
-            $septets[$i] = substr($octets, ($i*8)+$i+1, 7-$i) . substr($octets, ($i-1)*8, $i);
-            $septets[$i] = bindec($septets[$i]);
+            $septets[] = substr($octets, -7 * ($i+1), 7);
+            $i++;
         }
+
+        array_walk($septets, function (&$sept){
+            $sept = bindec($sept);
+        });
 
         return $septets;
     }

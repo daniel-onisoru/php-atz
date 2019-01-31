@@ -5,35 +5,33 @@ class PhpAtz
 {
     public $config = [
         'device'    => null,
-        'adapter'   => false,
+        'adapter'   => 'Serial',
 
-        'sms_mode'  => 'text', //pdu
+        'sms_mode'  => 'pdu',
 
         'timeout'   => 5,
         'debug'     => false
     ];
 
+    public $sock = false;
+
     public function __construct($config = [])
     {
         $this->config = array_merge($this->config, $config);
 
-        register_shutdown_function([$this, '_shutdown']);
         spl_autoload_register([$this, '_autoload']);
 
-        return;
-
-        switch ($config['adapter'])
-        {
-            case 'tcp':
-                $this->serial = new SerialTcp($this);
-                break;
-            default:
-                $this->serial = new Serial($this);
-                break;
-        }
+        $adapter = 'PhpAtz\\Adapters\\' . ucfirst($config['adapter']);
+        $this->conn = new $adapter($this);
 
         if (!$this->modem->atz())
             throw new \Exception('ATZ failed.');
+    }
+
+    public function __destruct()
+    {
+        if ($this->sock)
+            $this->conn->close();
     }
 
     public static function _autoload($className)
@@ -53,26 +51,20 @@ class PhpAtz
         return false;
     }
 
-    public static function _shutdown()
-    {
-        if ($this->sock)
-            $this->serial->close();
-    }
-
     public function __get($v)
     {
-
-        $v = strtolower($v);
-        if (file_exists('phpatz/' . ucfirst($v) . '.php'))
+        if (file_exists(dirname(__FILE__) . '/Modules/' . ucfirst($v) . '.php'))
         {
-            $className = 'PhpAtz\\' . ucfirst($v);
+            $className = 'PhpAtz\\Modules\\' . ucfirst($v);
             $this->{$v} = new $className($this);
-
-            return $this->{$v};
         }
 
+        if (file_exists(dirname(__FILE__) . '/Utils/' . ucfirst($v) . '.php'))
+        {
+            $className = 'PhpAtz\\Utils\\' . ucfirst($v);
+            $this->{$v} = new $className($this);
+        }
 
-        //var_dump(getcwd() . '/phpatz/' . ucfirst($v) . '.php', )
-
+        return $this->{$v};
     }
 }

@@ -1,8 +1,8 @@
 <?php
-namespace PhpAtz;
+namespace PhpAtz\Adapters;
 
 
-class SerialTcp extends Serial
+class Tcp extends \PhpAtz\Adapters\Serial
 {
 
     function __construct($phpatz)

@@ -1,8 +1,8 @@
 <?php
-namespace PhpAtz;
+namespace PhpAtz\Adapters;
 
 
-class Serial extends Base
+class Serial extends \PhpAtz\Utils\Base
 {
     public $log = [];
 
