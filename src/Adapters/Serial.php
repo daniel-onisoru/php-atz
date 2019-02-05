@@ -80,6 +80,29 @@ class Serial extends \PhpAtz\Utils\Base
     }
 
     /**
+    * reads a single line from socket
+    *
+    * @returns string
+    */
+    public function read_line()
+    {
+         if (!$this->sock)
+            throw new \Exception('Device not connected.');
+
+        $line = fgets($this->sock);
+
+        if ($line)
+        {
+            if ($this->config['debug'])
+                $this->log[] = 'R: ' . trim($line);
+
+            return $line;
+        }
+
+        return false;
+    }
+
+    /**
     * checks if last line read is an OK message
     * usefull for commands that only returns OK/ERROR
     *
