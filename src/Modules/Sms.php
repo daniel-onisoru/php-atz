@@ -16,7 +16,24 @@ class Sms extends \PhpAtz\Utils\Base
         switch ($this->config['sms_mode'])
         {
             case 'text':
-                return $this->_send_text($phone, $message);
+                $this->conn->write("AT+CMGS=\"$phone\"\n");
+                $this->conn->read_line();
+                $this->conn->write($message);
+                $this->conn->write(chr(26));
+
+                $reply = $this->conn->read();
+
+                if (!$reply) return false;
+
+                foreach ($reply as $line)
+                {
+                    if (preg_match('/\+CMGS: ([0-9]+)/', $line, $matches))
+                    {
+                        return intval(str_replace(',', '.',$matches[1]));
+                    }
+                }
+
+                return false;
             case 'pdu':
                 return $this->_send_pdu($phone, $message);
             default:
@@ -167,32 +184,6 @@ class Sms extends \PhpAtz\Utils\Base
     {
         $this->conn->write("AT+CMGF=" . ($mode == 'text' ? 1: 0) . "\n");
         return $this->conn->read_ok();
-    }
-
-    private function _send_text($phone, $message)
-    {
-        $this->conn->write("AT+CMGF=1\n");
-
-        if (!$this->conn->read_ok())
-            return false;
-
-        $this->conn->write("AT+CMGS=\"$phone\"\n");
-        $this->conn->write($message. "\n");
-        $this->conn->write(chr(26));
-
-        $reply = $this->conn->read();
-
-        if (!$reply) return false;
-
-        foreach ($reply as $line)
-        {
-            if (preg_match('/\+CMGS: ([0-9]+)/', $line, $matches))
-            {
-                return intval(str_replace(',', '.',$matches[1]));
-            }
-        }
-
-        return false;
     }
 
 }

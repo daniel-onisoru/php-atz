@@ -15,15 +15,18 @@ set_time_limit(10);
 
 require_once 'vendor/autoload.php';
 
+$m = new \PhpAtz\PhpAtz([
+    'device'    => '10.0.0.61:961',
+    'adapter'   => 'tcp',
+    'auto_init' => false,
+
+    'sms_mode'  => 'pdu', //text
+
+    'debug'     => true,
+]);
+
 try {
-    $m = new \PhpAtz\PhpAtz([
-        'device'    => '10.0.0.61:961',
-        'adapter'   => 'tcp',
-
-        'sms_mode'  => 'pdu', //text
-
-        'debug'     => true,
-    ]);
+    $m->init();
 
     echo 'Connected' . "\n";
     echo 'IMEI is: ' . $m->info->getIMEI(). "\n";
@@ -31,14 +34,14 @@ try {
     echo 'Network is: ' . $m->info->getNetwork() . "\n";
 
 
-    //echo 'Sending SMS message. Ref: ' . $m->sms->send('+40768248202', 'Some message') . "\n";
+    echo 'Sending SMS message. Ref: ' . $m->sms->send('+40768248202', 'Some message') . "\n";
 
     echo 'SMS storage status: ' . "\n";
-    var_dump($m->sms->getStorageStatus());
+    //var_dump($m->sms->getStorageStatus());
     echo "\n";
 
     echo "Listing all received messages: " . "\n";
-    var_dump($m->sms->getReceived('all'));
+    //var_dump($m->sms->getReceived('all'));
 
 
 
@@ -47,6 +50,7 @@ try {
 }
 catch (Exception $e)
 {
+    var_dump($m->conn->log);
     echo '[' . $e->getCode() . '] ' . $e->getMessage() . ' in ' . $e->getFile() .' on line ' . $e->getLine();
 }
 

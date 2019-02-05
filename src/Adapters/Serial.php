@@ -38,9 +38,28 @@ class Serial extends \PhpAtz\Utils\Base
         return false;
     }
 
+    public function read_line()
+    {
+         if (!$this->sock)
+            throw new \Exception('Device not connected.');
+
+        $line = fgets($this->sock);
+
+        if ($line)
+        {
+            if ($this->config['debug'])
+                $this->log[] = 'R: ' . trim($line);
+
+            return $line;
+        }
+
+        return false;
+    }
+
     public function read_ok()
     {
         $reply = $this->read();
+        if (!$reply) return false;
 
         if (preg_match('/OK/', $reply[count($reply) - 1]))
             return true;
