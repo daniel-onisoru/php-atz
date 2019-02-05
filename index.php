@@ -15,7 +15,7 @@ set_time_limit(10);
 
 require_once 'vendor/autoload.php';
 
-$m = new \PhpAtz\PhpAtz([
+$dev = new \PhpAtz\PhpAtz([
     'device'    => '10.0.0.61:961',
     'adapter'   => 'tcp',
     'auto_init' => false,
@@ -26,39 +26,42 @@ $m = new \PhpAtz\PhpAtz([
 ]);
 
 try {
-    $m->init();
+    $dev->init();
 
     echo '<b>Connected</b>' . "\n\n";
-    echo '<b>IMEI is:</b> ' . $phpatz->info->getIMEI(). "\n\n";
-    echo '<b>Signal is:</b>' . $phpatz->info->getSignal(). "\n\n";
-    echo '<b>Network is:</b>' . $phpatz->info->getNetwork() . "\n\n";
+    echo '<b>IMEI is:</b> ' . $dev->info->getIMEI(). "\n\n";
+    echo '<b>Signal is:</b>' . $dev->info->getSignal(). "\n\n";
+    echo '<b>Network is:</b>' . $dev->info->getNetwork() . "\n\n";
 
-    echo '<b>Sending SMS message.</b> Ref: ' . $phpatz->sms->send('+40768248202', 'Some message') . "\n\n";
+    /*
+    AT+CMGS=57
+    00 11 00 0A 81 70864228200008FF2C004D006500730061006A002000EE006E0020006C0069006D0062006100200072006F006D00E2006E0103002E
+    00 11 00 0A a1 70864228200008FF2c004d006500730061006a002000ee006e0020006c0069006d0062006100200072006f006d00e2006e0103002e
+    */
 
-    echo 'Sending SMS message. Ref: ' . $m->sms->send('+40768248202', 'Some message') . "\n";
+    echo '<b>Sending SMS message.</b> Ref: ' . $dev->sms->send('0768248202', 'Mesaj în limba română.') . "\n\n";
 
+    /*
     echo 'SMS storage status: ' . "\n";
-    //var_dump($m->sms->getStorageStatus());
+    var_dump($m->sms->getStorageStatus());
     echo "\n";
+    */
 
-    echo "Listing all received messages: " . "\n";
-    //var_dump($m->sms->getReceived('all'));
-
-
+    /*
     echo "<b>SMS all recieved:</b>" . "\n";
-    $d = $phpatz->sms->getReceived('all');
+    $d = $dev->sms->getReceived('all');
     foreach ($d as $msg)
     {
         echo '[mem: ' . implode(',', $msg['mem_index']) . '] [status: ' . $msg['status'] . '] [from: ' . $msg['sender'] . '] [date: ' . $msg['date_received'] . '] ' . $msg['message'];
         echo "\n";
-    }
+    }*/
 
-    //var_dump($phpatz->conn->log);
+    var_dump($dev->conn->log);
 
 }
 catch (Exception $e)
 {
-    var_dump($m->conn->log);
+    var_dump($dev->conn->log);
     echo '[' . $e->getCode() . '] ' . $e->getMessage() . ' in ' . $e->getFile() .' on line ' . $e->getLine();
 }
 ?>

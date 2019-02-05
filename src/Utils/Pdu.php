@@ -23,6 +23,54 @@ define('CLASS_3', 'Class 3 (TE-specific)');
 
 class Pdu extends \PhpAtz\Utils\Base
 {
+
+    private $ToN = [
+        0b00000000 => 'Unknown 1',
+        0b00010000 => 'International number 2)',
+        0b00100000 => 'National number 3)',
+        0b00110000 => 'Network specific number 4)',
+        0b01000000 => 'Subscriber number 5)',
+        0b01010000 => 'Alphanumeric, (coded according to 3GPP TS 23.038 [9] GSM 7-bit default alphabet)',
+        0b01100000 => 'Abbreviated number',
+        0b01110000 => 'Reserved for extension',
+    ];
+
+    private $NBI = [
+        0b00000000 => 'Unknown',
+        0b00000001 => 'ISDN/telephone numbering plan (E.164/E.163)',
+        0b00000011 => 'Data numbering plan (X.121)',
+        0b00000100 => 'Telex numbering plan',
+        0b00000101 => 'Service Centre Specific plan 1)',
+        0b00000110 => 'Service Centre Specific plan 1)',
+        0b00001000 => 'National numbering plan',
+        0b00001001 => 'Private numbering plan',
+        0b00001010 => 'ERMES numbering plan (ETSI DE/PS 3 01 3)',
+        0b00001111 => 'Reserved for extension',
+    ];
+
+    private $dict_7bit = [
+        0 => '@', 1 => '£', 2 => '$', 3 => '¥', 4 => 'è', 5 => 'é', 6 => 'ù', 7 => 'ì', 8 => 'ò', 9 => 'Ç',
+        10 =>'\n', 11 => 'Ø', 12 => 'ø', 13 => '\r', 14 => 'Å', 15 => 'å', 16 => '\u0394', 17 => '_', 18 => '\u03a6', 19 => '\u0393',
+        20 => '\u039b', 21 => '\u03a9', 22 => '\u03a0', 23 => '\u03a8', 24 => '\u03a3', 25 => '\u0398', 26 => '\u039e', 28 => 'Æ', 29 => 'æ',
+        30 => 'ß', 31 => 'É', 32 => ' ', 33 => '!', 34 => '"', 35 => '#', 36 => '¤', 37 => '%', 38 => '&', 39 => '\'',
+        40 => '(', 41 => ')', 42 => '*', 43 => '+', 44 => ',', 45 => '-', 46 => '.', 47 => '/', 48 => '0', 49 => '1',
+        50 => '2', 51 => '3', 52 => '4', 53 => '5', 54 => '6', 55 => '7', 56 => '8', 57 => '9', 58 => ' =>', 59 => ';',
+        60 => '<', 61 => '=', 62 => '>', 63 => '?', 64 => '¡', 65 => 'A', 66 => 'B', 67 => 'C', 68 => 'D', 69 => 'E',
+        70 => 'F', 71 => 'G', 72 => 'H', 73 => 'I', 74 => 'J', 75 => 'K', 76 => 'L', 77 => 'M', 78 => 'N', 79 => 'O',
+        80 => 'P', 81 => 'Q', 82 => 'R', 83 => 'S', 84 => 'T', 85 => 'U', 86 => 'V', 87 => 'W', 88 => 'X', 89 => 'Y',
+        90 => 'Z', 91 => 'Ä', 92 => 'Ö', 93 => 'Ñ', 94 => 'Ü', 95 => '§', 96 => '¿', 97 => 'a', 98 => 'b', 99 => 'c',
+        100 => 'd', 101 => 'e', 102 => 'f', 103 => 'g', 104 => 'h', 105 => 'i', 106 => 'j', 107 => 'k', 108 => 'l', 109 => 'm',
+        110 => 'n', 111 => 'o', 112 => 'p', 113 => 'q', 114 => 'r', 115 => 's', 116 => 't', 117 => 'u', 118 => 'v', 119 => 'w',
+        120 => 'x', 121 => 'y', 122 => 'z', 123 => 'ä', 124 => 'ö', 125 => 'ñ', 126 => 'ü', 127 => 'à'
+    ];
+
+    // escape char = 27
+    private $dict_7bit_esc = [
+        10 => '\n',
+        20 => '^', 40 => '{', 41 => '}', 47 => '\\',
+        60 => '[', 61 => '~', 62 => ']', 64 => '|', 101 => '&#8364;'
+    ];
+
     /**
     * decode pdu string
     *
@@ -64,7 +112,7 @@ class Pdu extends \PhpAtz\Utils\Base
         $smscLength =  intval($smscLength[0], 16);
         if ($smscLength) {
             $decoded['smsc'] = ['format' => [], 'number' => ''];
-            $decoded['smsc']['format'] = $this->_toa(array_splice($octets, 0, 1)[0]);
+            $decoded['smsc']['format'] = $this->_toa_decode(array_splice($octets, 0, 1)[0]);
             $decoded['smsc']['number'] = $this->_number(array_splice($octets, 0, $smscLength - 1), $smscLength, $decoded['smsc']['format']);
         }
 
@@ -79,6 +127,67 @@ class Pdu extends \PhpAtz\Utils\Base
         }
 
         return $decoded;
+    }
+
+    function encode($phone, $message)
+    {
+        if (!preg_match('/^\+?([0-9]+)$/', $phone))
+            throw new \Exception('Invalid phone number format.');
+
+        if (!$message)
+            throw new \Exception('Message cannot be empty.');
+
+
+        $udh = false;
+
+        // use phone smsc
+        $pdu[] = '00';
+
+        $tpdu = 0b00010001; // TP-VPF relative
+        if ($udh) $tpdu |= 0b01000000; // UDHI pressent
+        $pdu[] = dechex($tpdu);
+
+        $pdu[] = '00'; //message reference number
+
+
+        $phoneNo = preg_replace('/[^0-9]*/', '', $phone);
+        $phoneLength = strlen($phoneNo);
+
+        $pdu[] = str_pad(strtoupper(dechex($phoneLength)), 2, '0', STR_PAD_LEFT); // Length of phone number
+        $pdu[] = $this->_toa_encode($phone);
+
+        if ($phoneLength % 2) $phoneNo .= 'F';
+        for ($i = 0; $i < $phoneLength; $i+=2)
+        {
+            $pdu[] = substr($phoneNo, $i+1, 1) . substr($phoneNo, $i, 1);
+        }
+
+        $dcs = DCS_GSM_7bit;
+
+        $pdu[] = '00'; // Protocol IDentifier
+        $pdu[] = $this->_dcs_encode($dcs, CLASS_0);
+
+        $pdu[] = 'FF'; //validity period 4 days
+
+        //encode user data
+        switch ($dcs)
+        {
+            case DCS_GSM_7bit:
+                $ud = $this->_7bit_encode($message);
+                break;
+            case DCS_8bit:
+                throw new \Exception('8bit encoding not implemented.');
+                break;
+            case DCS_UCS2:
+                $ud = $this->_ucs2_encode($message);
+                break;
+        }
+
+
+        $pdu[] = dechex(strlen($ud) / 2); // udl
+        $pdu[] = $ud; //ud
+
+        return implode('', $pdu);
     }
 
     /**
@@ -97,13 +206,13 @@ class Pdu extends \PhpAtz\Utils\Base
             $decoded['sender'] = ['format' => [], 'number' => ''];
 
             $numberLength = ceil($senderLength / 2);
-            $decoded['sender']['format'] = $this->_toa(array_splice($octets, 0, 1)[0]);
+            $decoded['sender']['format'] = $this->_toa_decode(array_splice($octets, 0, 1)[0]);
             $decoded['sender']['number']  = $this->_number(array_splice($octets, 0, $numberLength), $numberLength + 1, $decoded['sender']['format']);
         }
 
         // pid & dcs
         $decoded['pid'] = $this->_pid(array_splice($octets, 0, 1)[0]);
-        list ($decoded['dcs'], $decoded['class']) = $this->_dcs(array_splice($octets, 0, 1)[0]);
+        list ($decoded['dcs'], $decoded['class']) = $this->_dcs_decode(array_splice($octets, 0, 1)[0]);
 
         // timestamp
         $decoded['scts'] = $this->_scts(array_splice($octets, 0, 7));
@@ -148,11 +257,11 @@ class Pdu extends \PhpAtz\Utils\Base
         {
             case DCS_GSM_7bit:
                 $skip = $decoded['type']['udhi'] ? floor(((($decoded['udh']['length'] + 1) * 8) + 6) / 7) : 0;
-                $decoded['message'] = $this->_decode_7bit($ud, $skip);
+                $decoded['message'] = $this->_7bit_decode($ud, $skip);
                 break;
             case DCS_UCS2:
                 //$skip = $decoded['type']['udhi'] ? floor(((($decoded['udh']['length'] + 1) * 8) + 6) / 7) : 0;
-                $decoded['message'] = $this->_decode_ucs2($ud);
+                $decoded['message'] = $this->_ucs2_decode($ud);
                 break;
             default:
                 throw new \Exception('DCS: ' . $decoded['dcs'] . ' not impemented');
@@ -160,54 +269,67 @@ class Pdu extends \PhpAtz\Utils\Base
     }
 
     /**
-    * decodes octets intro 7bit alphabet
+    * decodes octets into 7bit alphabet
     *
     * @ignore
     * @param mixed $octets - hex encoded octets
     * @param mixed $skip - chars to skip from the begining (because of udh)
     */
-    function _decode_7bit($octets, $skip = 0)
+    function _7bit_decode($octets, $skip = 0)
     {
-        $dict = [
-            0 => '@', 1 => '£', 2 => '$', 3 => '¥', 4 => 'è', 5 => 'é', 6 => 'ù', 7 => 'ì', 8 => 'ò', 9 => 'Ç',
-            10 =>'\n', 11 => 'Ø', 12 => 'ø', 13 => '\r', 14 => 'Å', 15 => 'å', 16 => '\u0394', 17 => '_', 18 => '\u03a6', 19 => '\u0393',
-            20 => '\u039b', 21 => '\u03a9', 22 => '\u03a0', 23 => '\u03a8', 24 => '\u03a3', 25 => '\u0398', 26 => '\u039e', 28 => 'Æ', 29 => 'æ',
-            30 => 'ß', 31 => 'É', 32 => ' ', 33 => '!', 34 => '"', 35 => '#', 36 => '¤', 37 => '%', 38 => '&', 39 => '\'',
-            40 => '(', 41 => ')', 42 => '*', 43 => '+', 44 => ',', 45 => '-', 46 => '.', 47 => '/', 48 => '0', 49 => '1',
-            50 => '2', 51 => '3', 52 => '4', 53 => '5', 54 => '6', 55 => '7', 56 => '8', 57 => '9', 58 => ' =>', 59 => ';',
-            60 => '<', 61 => '=', 62 => '>', 63 => '?', 64 => '¡', 65 => 'A', 66 => 'B', 67 => 'C', 68 => 'D', 69 => 'E',
-            70 => 'F', 71 => 'G', 72 => 'H', 73 => 'I', 74 => 'J', 75 => 'K', 76 => 'L', 77 => 'M', 78 => 'N', 79 => 'O',
-            80 => 'P', 81 => 'Q', 82 => 'R', 83 => 'S', 84 => 'T', 85 => 'U', 86 => 'V', 87 => 'W', 88 => 'X', 89 => 'Y',
-            90 => 'Z', 91 => 'Ä', 92 => 'Ö', 93 => 'Ñ', 94 => 'Ü', 95 => '§', 96 => '¿', 97 => 'a', 98 => 'b', 99 => 'c',
-            100 => 'd', 101 => 'e', 102 => 'f', 103 => 'g', 104 => 'h', 105 => 'i', 106 => 'j', 107 => 'k', 108 => 'l', 109 => 'm',
-            110 => 'n', 111 => 'o', 112 => 'p', 113 => 'q', 114 => 'r', 115 => 's', 116 => 't', 117 => 'u', 118 => 'v', 119 => 'w',
-            120 => 'x', 121 => 'y', 122 => 'z', 123 => 'ä', 124 => 'ö', 125 => 'ñ', 126 => 'ü', 127 => 'à',
-            27 => [
-                10 => '\n',
-                20 => '^', 40 => '{', 41 => '}', 47 => '\\',
-                60 => '[', 61 => '~', 62 => ']', 64 => '|', 101 => '&#8364;'
-            ]
-        ];
-
         $septets = $this->_oct2sept($octets);
 
         $message = '';
         for ($i=0; $i<count($septets); $i++)
         {
             if ($i<$skip) continue;
-
             $chr = $septets[$i];
 
-            if (!is_array($chr))
-                $message .= $dict[$chr];
-            else {
+            if ($chr != 27)
+            {
+                $message .= $this->dict_7bit[$chr];
+            } else {
                 $i++;
-                $chr = $septets[$i];
-                $message .= $dict[$chr];
+                $chr      = $septets[$i];
+                $message .= $this->dict_7bit_esc[$chr];
             }
         }
 
         return $message;
+    }
+
+    /**
+    * encodes string into 7bit alphabet
+    *
+    * @ignore
+    * @param mixed $octets - hex encoded octets
+    * @param mixed $skip - chars to skip from the begining (because of udh)
+    */
+    function _7bit_encode($string)
+    {
+        $dict       = array_flip($this->dict_7bit);
+        $dict_esc   = array_flip($this->dict_7bit_esc);
+
+        $string     = str_split($string);
+        $septets    = [];
+
+        foreach ($string as $char)
+        {
+            if ($key = array_search($char, $this->dict_7bit))
+            {
+                $septets[] = str_pad(decbin($key), 7, '0', STR_PAD_LEFT);
+                continue;
+            }
+
+            if ($key = array_search($char, $this->dict_7bit_esc))
+            {
+                $septets[] = str_pad(decbin(27), 7, '0', STR_PAD_LEFT);
+                $septets[] = str_pad(decbin($key), 7, '0', STR_PAD_LEFT);
+                continue;
+            }
+        }
+
+        return $this->_sept2oct($septets);
     }
 
     /**
@@ -216,18 +338,27 @@ class Pdu extends \PhpAtz\Utils\Base
     * @ignore
     * @param mixed $octets
     */
-    private function _decode_ucs2($octets)
+    private function _ucs2_decode($octets)
     {
-        //var_dump($octets);
         $string = implode('', $octets);
-        //echo $string . "\n";
-        //$string = hex2bin($string);
         $string = pack("H*", implode('', $octets));
 
-        //echo $string . "\n";
         $string = mb_convert_encoding($string, 'UTF-8', 'UCS-2');
-        //echo $string;
         return $string;
+    }
+
+    /**
+    * encodes UCS2 string
+    *
+    * @ignore
+    * @param mixed $string
+    */
+    private function _ucs2_encode($string)
+    {
+        $string = mb_convert_encoding($string, 'UCS-2', 'UTF-8');
+        $string = unpack("H*hex", $string);
+        var_dump($string);
+        return $string['hex'];
     }
 
     /**
@@ -259,6 +390,34 @@ class Pdu extends \PhpAtz\Utils\Base
         });
 
         return $septets;
+    }
+
+    /**
+    * converts septets into octets
+    *
+    * @ignore
+    * @param mixed $octets
+    */
+    private function _sept2oct($septets)
+    {
+        throw new \Exception('sept2oct not implemented.');
+
+
+        $septCount = count($septets);
+        $octets = [];
+
+        for ($i=0; $i<$septCount; $i++)
+        {
+            $septLength     = strlen($septets[$i]);
+            $nextSeptLength = strlen($septets[$i+1]);
+
+            $octets[] = substr($septets[$i], $nextSeptLength - (8 - $septLength)) . $septets[$i];
+
+            $septets[$i+1] = substr($septets[$i+1], 0, $nextSeptLength - (8 - $septLength));
+            //var_dump('int septets', $septets);
+        }
+
+        die();
     }
 
     /**
@@ -297,40 +456,36 @@ class Pdu extends \PhpAtz\Utils\Base
     * @ignore
     * @param mixed $octet
     */
-    private function _toa($octet)
+    private function _toa_decode($octet)
     {
-        $ToN = [
-            0b00000000 => 'Unknown 1',
-            0b00010000 => 'International number 2)',
-            0b00100000 => 'National number 3)',
-            0b00110000 => 'Network specific number 4)',
-            0b01000000 => 'Subscriber number 5)',
-            0b01010000 => 'Alphanumeric, (coded according to 3GPP TS 23.038 [9] GSM 7-bit default alphabet)',
-            0b01100000 => 'Abbreviated number',
-            0b01110000 => 'Reserved for extension',
-        ];
-
-        $NBI = [
-            0b00000000 => 'Unknown',
-            0b00000001 => 'ISDN/telephone numbering plan (E.164/E.163)',
-            0b00000011 => 'Data numbering plan (X.121)',
-            0b00000100 => 'Telex numbering plan',
-            0b00000101 => 'Service Centre Specific plan 1)',
-            0b00000110 => 'Service Centre Specific plan 1)',
-            0b00001000 => 'National numbering plan',
-            0b00001001 => 'Private numbering plan',
-            0b00001010 => 'ERMES numbering plan (ETSI DE/PS 3 01 3)',
-            0b00001111 => 'Reserved for extension',
-        ];
-
-
         $octet = intval($octet, 16);
 
         return [
             'ToN' => $octet & 0x70,
             'NPI' => $octet & 0xF,
-            'info' => $ToN[$octet & 0x70] .', ' . $NBI[$octet & 0xF]
+            'info' => $this->ToN[$octet & 0x70] .', ' . $this->NBI[$octet & 0xF]
         ];
+    }
+
+    /**
+    * encodes type-of-address octet from a phone number
+    *
+    * @ignore
+    * @param string $phone
+    */
+    private function _toa_encode($phone)
+    {
+        $phone = preg_replace('/[^0-9\+]*/', '', $phone); //sanitize
+
+        $octet = 0b10000000;
+        $octet |= 0b00000001; // NBI = ISDN/telephone numbering plan (E.164/E.163)
+
+        if (strpos($phone, '+') === 0)
+            $octet |= 0b00010000; // international number
+        else
+            $octet |= 0b00000000; // unknown
+
+        return dechex($octet);
     }
 
     /**
@@ -395,7 +550,7 @@ class Pdu extends \PhpAtz\Utils\Base
     * @ignore
     * @param mixed $octet
     */
-    function _dcs($octet)
+    function _dcs_decode($octet)
     {
         $octet = intval($octet, 16);
 
@@ -414,6 +569,48 @@ class Pdu extends \PhpAtz\Utils\Base
         ];
 
         return [$map['dcs'][$octet &0b00001100], $map['class'][$octet &0b00000011]];
+    }
+
+    /**
+    * encode DCS octet
+    *
+    * @ignore
+    * @param mixed $octet
+    */
+    function _dcs_encode($alphabet, $class = CLASS_0)
+    {
+        $octet = 0x00;
+
+        switch ($alphabet)
+        {
+            case DCS_GSM_7bit:
+                $octet |= 0b00000000;
+                break;
+            case DCS_8bit:
+                $octet |= 0b00000100;
+                break;
+            case DCS_UCS2:
+                $octet |= 0b00001000;
+                break;
+        }
+
+        switch ($class)
+        {
+            case CLASS_0:
+                $octet |= 0b00000000;
+                break;
+            case CLASS_1:
+                $octet |= 0b00000001;
+                break;
+            case CLASS_2:
+                $octet |= 0b00000010;
+                break;
+            case CLASS_3:
+                $octet |= 0b00000011;
+                break;
+        }
+
+        return str_pad(dechex($octet), 2, '0', STR_PAD_LEFT);
     }
 
     /**

@@ -32,7 +32,8 @@ class Sms extends \PhpAtz\Utils\Base
     */
     function send($phone, $message)
     {
-        if ($this->config['sms_mode'] == 'text')
+
+        switch ($this->config['sms_mode'])
         {
             case 'text':
                 $this->conn->write("AT+CMGS=\"$phone\"\n");
@@ -54,13 +55,29 @@ class Sms extends \PhpAtz\Utils\Base
 
                 return false;
             case 'pdu':
-                return $this->_send_pdu($phone, $message);
+                $pdu = $this->pdu->encode($phone, $message);
+                $tpduLengh = (strlen($pdu) - 2) / 2;
+
+                $this->conn->write("AT+CMGS=\"$tpduLengh\"\n");
+                $this->conn->read_line();
+                $this->conn->write($pdu);
+                $this->conn->write(chr(26));
+
+                $reply = $this->conn->read();
+
+                if (!$reply) return false;
+
+                foreach ($reply as $line)
+                {
+                    if (preg_match('/\+CMGS: ([0-9]+)/', $line, $matches))
+                    {
+                        return intval(str_replace(',', '.',$matches[1]));
+                    }
+                }
+
+                return false;
             default:
                 throw new \Exception('sms_mode not set.');
-        }
-        elseif ($this->config['sms_mode'] == 'pdu')
-        {
-
         }
 
         return false;
