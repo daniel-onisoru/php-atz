@@ -1,8 +1,20 @@
 <?php
+/**
+* PhpAtz Main class
+*
+*
+* @author Daniel Onisoru <daniel.onisoru@gmail.com>
+* @project PhpAtz
+*/
+
 namespace PhpAtz;
 
 class PhpAtz
 {
+    /**
+    * @ignore
+    * @var array
+    */
     public $config = [
         'device'    => null,
         'adapter'   => 'Serial',
@@ -13,8 +25,15 @@ class PhpAtz
         'debug'     => false
     ];
 
+    /**
+    * @ignore
+    */
     public $sock = false;
 
+    /**
+    * @ignore
+    * @param mixed $config
+    */
     public function __construct($config = [])
     {
         $this->config = array_merge($this->config, $config);
@@ -28,12 +47,19 @@ class PhpAtz
             throw new \Exception('ATZ failed.');
     }
 
+    /**
+    * @ignore
+    */
     public function __destruct()
     {
         if ($this->sock)
             $this->conn->close();
     }
 
+    /**
+    * @ignore
+    * @param mixed $className
+    */
     public static function _autoload($className)
     {
         if ((class_exists($className, FALSE)) || (strpos($className, 'PhpAtz') !== 0)) {
@@ -51,6 +77,10 @@ class PhpAtz
         return false;
     }
 
+    /**
+    * @ignore
+    * @param mixed $v
+    */
     public function __get($v)
     {
         if (file_exists(dirname(__FILE__) . '/Modules/' . ucfirst($v) . '.php'))

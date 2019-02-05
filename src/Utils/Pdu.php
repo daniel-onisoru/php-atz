@@ -1,4 +1,13 @@
 <?php
+/**
+* PDU Utils
+*
+* PDU decoder, encoder
+*
+* @author Daniel Onisoru <daniel.onisoru@gmail.com>
+* @project PhpAtz
+*/
+
 namespace PhpAtz\Utils;
 
 // dcs encoding
@@ -18,7 +27,8 @@ class Pdu extends \PhpAtz\Utils\Base
     * decode pdu string
     *
     * @param mixed $pdu
-    * @param mixed $dir - 0 = recieved, 1 = sent
+    * @param mixed $dir - 0 = message recieved, 1 = message sent
+    * @returns array decoded PDU message or false on error
     */
     public function decode($pdu, $dir = 0)
     {
@@ -71,6 +81,13 @@ class Pdu extends \PhpAtz\Utils\Base
         return $decoded;
     }
 
+    /**
+    * decodes SMS-DELIVER message
+    * @ignore
+    *
+    * @param mixed $octets
+    * @param mixed $decoded
+    */
     private function _decode_deliver(&$octets, &$decoded)
     {
         // sender address
@@ -145,6 +162,7 @@ class Pdu extends \PhpAtz\Utils\Base
     /**
     * decodes octets intro 7bit alphabet
     *
+    * @ignore
     * @param mixed $octets - hex encoded octets
     * @param mixed $skip - chars to skip from the begining (because of udh)
     */
@@ -192,6 +210,12 @@ class Pdu extends \PhpAtz\Utils\Base
         return $message;
     }
 
+    /**
+    * decodes UCS2 message
+    *
+    * @ignore
+    * @param mixed $octets
+    */
     private function _decode_ucs2($octets)
     {
         //var_dump($octets);
@@ -206,6 +230,12 @@ class Pdu extends \PhpAtz\Utils\Base
         return $string;
     }
 
+    /**
+    * converts octets into septets
+    *
+    * @ignore
+    * @param mixed $octets
+    */
     private function _oct2sept($octets)
     {
         array_walk($octets, function (&$oct) {
@@ -232,8 +262,9 @@ class Pdu extends \PhpAtz\Utils\Base
     }
 
     /**
-    * decodes phone number
+    * decodes phone number (smsc, sender)
     *
+    * @ignore
     * @param mixed $octets
     * @param mixed $length
     */
@@ -263,6 +294,7 @@ class Pdu extends \PhpAtz\Utils\Base
     /**
     * decodes type-of-address octet
     *
+    * @ignore
     * @param mixed $octet
     */
     private function _toa($octet)
@@ -301,6 +333,14 @@ class Pdu extends \PhpAtz\Utils\Base
         ];
     }
 
+    /**
+    * decodes pdutype octet
+    *
+    * @ignore
+    * @param mixed $octet
+    * @param mixed $dir
+    * @return mixed
+    */
     function _pdu_type($octet, $dir)
     {
         $octet = intval($octet, 16);
@@ -333,6 +373,12 @@ class Pdu extends \PhpAtz\Utils\Base
         return 'Reserved';
     }
 
+    /**
+    * decodes protocl id octet
+    *
+    * @ignore
+    * @param mixed $octet
+    */
     function _pid($octet)
     {
         $pid = intval($octet, 16);
@@ -343,6 +389,12 @@ class Pdu extends \PhpAtz\Utils\Base
         return ['id' => $pid, 'info' => 'Default store and forward short message'];
     }
 
+    /**
+    * decodes DCS octet
+    *
+    * @ignore
+    * @param mixed $octet
+    */
     function _dcs($octet)
     {
         $octet = intval($octet, 16);
@@ -364,6 +416,13 @@ class Pdu extends \PhpAtz\Utils\Base
         return [$map['dcs'][$octet &0b00001100], $map['class'][$octet &0b00000011]];
     }
 
+    /**
+    * decode scts (service center time stamp)
+    *
+    * @ignore
+    * @param mixed $octets
+    * @returns string
+    */
     private function _scts($octets)
     {
         for ($i=0; $i<7; $i++)

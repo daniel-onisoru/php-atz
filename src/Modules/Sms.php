@@ -1,41 +1,69 @@
 <?php
+/**
+* SMS Module
+*
+* Get, Send SMS messages, Manage SMS memory etc.
+*
+* @author Daniel Onisoru <daniel.onisoru@gmail.com>
+* @project PhpAtz
+*/
+
 namespace PhpAtz\Modules;
 
 class Sms extends \PhpAtz\Utils\Base
 {
+    /**
+    * @ignore
+    */
     function __construct($phpatz)
     {
         parent::__construct($phpatz);
 
+        // make sure the modem is in proper mode
         $this->setMode($this->config['sms_mode']);
     }
 
+    /**
+    * Send a SMS messages
+    *
+    * @param string $phone
+    * @param string $message
+    * @returns mixed message ref or false on error
+    */
     function send($phone, $message)
     {
-
-        switch ($this->config['sms_mode'])
+        if ($this->config['sms_mode'] == 'text')
         {
-            case 'text':
-                return $this->_send_text($phone, $message);
-            case 'pdu':
-                return $this->_send_pdu($phone, $message);
-            default:
-                throw new \Exception('sms_mode not set.');
+            $this->conn->write("AT+CMGS=\"$phone\"\n");
+            $this->conn->write($message. "\n");
+            $this->conn->write(chr(26));
+
+            $reply = $this->conn->read();
+            if (!$reply) return false;
+
+            foreach ($reply as $line)
+            {
+                if (preg_match('/\+CMGS: ([0-9]+)/', $line, $matches))
+                {
+                    return intval(str_replace(',', '.',$matches[1]));
+                }
+            }
+
+            return false;
         }
+        elseif ($this->config['sms_mode'] == 'pdu')
+        {
+
+        }
+
+        return false;
     }
 
-    /*function getNew()
-    {
-        $this->conn->write("AT+CMGL=\"REC UNREAD\"\n");
-        $reply = $this->conn->read();
-
-        var_dump($reply);
-    }*/
-
     /**
-    * returns messages stored in active memory
+    * Returns messages stored in active memory
     *
-    * @param mixed $list - all,old,new(default)
+    * @param string $list - all,old,new(default)
+    * @returns array messages
     */
     function getReceived($stat = 'new')
     {
@@ -128,6 +156,11 @@ class Sms extends \PhpAtz\Utils\Base
         return $messages;
     }
 
+    /**
+    * Returns active storage info.
+    *
+    * @returns array
+    */
     function getStorageStatus()
     {
         $this->conn->write("AT+CPMS?\n");
@@ -163,36 +196,18 @@ class Sms extends \PhpAtz\Utils\Base
 
     }
 
+    /**
+    * Sets SMS mode to text or pdu
+    *
+    * @param mixed $mode - text,pdu
+    * @returns bool
+    */
     function setMode($mode)
     {
+        $this->phpatz->config['sms_mode'] = $mode;
+
         $this->conn->write("AT+CMGF=" . ($mode == 'text' ? 1: 0) . "\n");
         return $this->conn->read_ok();
-    }
-
-    private function _send_text($phone, $message)
-    {
-        $this->conn->write("AT+CMGF=1\n");
-
-        if (!$this->conn->read_ok())
-            return false;
-
-        $this->conn->write("AT+CMGS=\"$phone\"\n");
-        $this->conn->write($message. "\n");
-        $this->conn->write(chr(26));
-
-        $reply = $this->conn->read();
-
-        if (!$reply) return false;
-
-        foreach ($reply as $line)
-        {
-            if (preg_match('/\+CMGS: ([0-9]+)/', $line, $matches))
-            {
-                return intval(str_replace(',', '.',$matches[1]));
-            }
-        }
-
-        return false;
     }
 
 }

@@ -1,9 +1,23 @@
 <?php
+/**
+* Info Module
+*
+* Get generic information from the modem (ex signal, network etc)
+*
+* @author Daniel Onisoru <daniel.onisoru@gmail.com>
+* @project PhpAtz
+*/
+
 namespace PhpAtz\Modules;
 
 class Info extends \PhpAtz\Utils\Base
 {
 
+    /**
+    * Get signal strength
+    *
+    * @returns float Signal strengh
+    */
     function getSignal()
     {
         $this->conn->write("AT+CSQ\n");
@@ -23,6 +37,11 @@ class Info extends \PhpAtz\Utils\Base
         return false;
     }
 
+    /**
+    * Get device IMEI
+    *
+    * @returns string IMEI
+    */
     function getIMEI()
     {
         $this->conn->write("AT+CGSN\n");
@@ -42,6 +61,11 @@ class Info extends \PhpAtz\Utils\Base
         return false;
     }
 
+    /**
+    * Get registered network
+    *
+    * @returns string Network, Country
+    */
     function getNetwork()
     {
         $this->conn->write("AT+COPS=3,0\n");
