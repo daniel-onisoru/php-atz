@@ -34,22 +34,29 @@ class Sms extends \PhpAtz\Utils\Base
     {
         if ($this->config['sms_mode'] == 'text')
         {
-            $this->conn->write("AT+CMGS=\"$phone\"\n");
-            $this->conn->write($message. "\n");
-            $this->conn->write(chr(26));
+            case 'text':
+                $this->conn->write("AT+CMGS=\"$phone\"\n");
+                $this->conn->read_line();
+                $this->conn->write($message);
+                $this->conn->write(chr(26));
 
-            $reply = $this->conn->read();
-            if (!$reply) return false;
+                $reply = $this->conn->read();
 
-            foreach ($reply as $line)
-            {
-                if (preg_match('/\+CMGS: ([0-9]+)/', $line, $matches))
+                if (!$reply) return false;
+
+                foreach ($reply as $line)
                 {
-                    return intval(str_replace(',', '.',$matches[1]));
+                    if (preg_match('/\+CMGS: ([0-9]+)/', $line, $matches))
+                    {
+                        return intval(str_replace(',', '.',$matches[1]));
+                    }
                 }
-            }
 
-            return false;
+                return false;
+            case 'pdu':
+                return $this->_send_pdu($phone, $message);
+            default:
+                throw new \Exception('sms_mode not set.');
         }
         elseif ($this->config['sms_mode'] == 'pdu')
         {

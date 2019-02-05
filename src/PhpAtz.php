@@ -18,6 +18,7 @@ class PhpAtz
     public $config = [
         'device'    => null,
         'adapter'   => 'Serial',
+        'auto_init' => true,
 
         'sms_mode'  => 'pdu',
 
@@ -37,14 +38,21 @@ class PhpAtz
     public function __construct($config = [])
     {
         $this->config = array_merge($this->config, $config);
-
         spl_autoload_register([$this, '_autoload']);
 
-        $adapter = 'PhpAtz\\Adapters\\' . ucfirst($config['adapter']);
+        if ($this->config['auto_init'])
+            $this->init();
+    }
+
+    public function init()
+    {
+        $adapter = 'PhpAtz\\Adapters\\' . ucfirst($this->config['adapter']);
         $this->conn = new $adapter($this);
 
         if (!$this->modem->atz())
             throw new \Exception('ATZ failed.');
+
+        return $this;
     }
 
     /**

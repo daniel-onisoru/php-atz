@@ -15,15 +15,18 @@ set_time_limit(10);
 
 require_once 'vendor/autoload.php';
 
+$m = new \PhpAtz\PhpAtz([
+    'device'    => '10.0.0.61:961',
+    'adapter'   => 'tcp',
+    'auto_init' => false,
+
+    'sms_mode'  => 'pdu', //text
+
+    'debug'     => true,
+]);
+
 try {
-    $phpatz = new \PhpAtz\PhpAtz([
-        'device'    => '10.0.0.61:961',
-        'adapter'   => 'tcp',
-
-        'sms_mode'  => 'pdu', //text
-
-        'debug'     => true,
-    ]);
+    $m->init();
 
     echo '<b>Connected</b>' . "\n\n";
     echo '<b>IMEI is:</b> ' . $phpatz->info->getIMEI(). "\n\n";
@@ -32,15 +35,15 @@ try {
 
     echo '<b>Sending SMS message.</b> Ref: ' . $phpatz->sms->send('+40768248202', 'Some message') . "\n\n";
 
-    echo '<b>SMS storage status:</b> ';
-    $d = $phpatz->sms->getStorageStatus();
-    printf(
-        'read(%s %d/%d) write(%s %d/%d) store(%s %d/%d)',
-        $d['read']['type'], $d['read']['used'], $d['read']['total'],
-        $d['write']['type'], $d['write']['used'], $d['write']['total'],
-        $d['store']['type'], $d['store']['used'], $d['store']['total']
-    );
-    echo "\n\n";
+    echo 'Sending SMS message. Ref: ' . $m->sms->send('+40768248202', 'Some message') . "\n";
+
+    echo 'SMS storage status: ' . "\n";
+    //var_dump($m->sms->getStorageStatus());
+    echo "\n";
+
+    echo "Listing all received messages: " . "\n";
+    //var_dump($m->sms->getReceived('all'));
+
 
     echo "<b>SMS all recieved:</b>" . "\n";
     $d = $phpatz->sms->getReceived('all');
@@ -55,6 +58,7 @@ try {
 }
 catch (Exception $e)
 {
+    var_dump($m->conn->log);
     echo '[' . $e->getCode() . '] ' . $e->getMessage() . ' in ' . $e->getFile() .' on line ' . $e->getLine();
 }
 ?>
