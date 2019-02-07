@@ -38,48 +38,12 @@ $messages = $dev->sms->getReceived('all');
 | **SMS Module**      |                 |             |             |
 | sms_mode  | pdu, text       | pdu | Mode for sending and recieving sms messages. |
 
-# Modules
-## Info
-### getIMEI()
-Device IMEI or false on failure.
-```php
-echo $dev->info->getIMEI();
-//Examples:
-//990000562571854
-//351746051513999
-//false
-```
-
-### getSignal()
-Float value with network signal. On failure it returns false or 99.9 
-```php
-echo $dev->info->getSignal();
-//Examples:
-//13.5
-//10.0
-//99.9
-//false
-```
-
-### getNetwork()
-Network name and country. False on failure.  
-
-```php
-echo $dev->info->getNetwork();
-//Examples:
-//AT&T Wireless Inc., United States
-//Vodafone, Romania
-//unknown, unknown
-//false
-```
-
-## SMS
-### send($phone, $message)
-Sends $message to $phone. Returns message ref number or false on failure.
-
-```php
-echo $dev->sms->send("+0000000000", "Some text message");
-//Examples:
-//45
-//13
-//false
+# Function reference
+| Function  | Params  | Description |
+| ---       | ---     | ---         |
+| **Info**  |         |             |
+| getIMEI   | *none*  | Device IMEI or false on failure. |
+| getSignal | *none*  | Float value with network signal. On failure it returns false or 99.9 |
+| getNetwork | *none* | Network name and country. False on failure. |
+| **SMS**  |         |             |
+| send | $phone, $message | Sends $message to $phone. Returns message ref number or false on failure. |
